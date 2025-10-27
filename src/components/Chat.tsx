@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Bot, User, Send } from 'lucide-react'
-import Image from 'next/image'
 import AIConfig from './AIConfig'
 
 interface Message {
@@ -221,7 +220,7 @@ const Chat = ({ initialMessages = [], onMessagesChange, onNewConversation }: Cha
       const updatedMessages = [...currentMessages, botResponse]
       setMessages(updatedMessages)
       
-    } catch (error) {
+    } catch {
       const errorResponse: Message = {
         id: Date.now() + 1,
         type: 'ai',
@@ -240,6 +239,13 @@ const Chat = ({ initialMessages = [], onMessagesChange, onNewConversation }: Cha
       handleSendMessage()
     }
   }
+
+  const handleConfigChange = (config: { type: string; openaiKey?: string }) => {
+    setAiConfig({
+      type: config.type as 'openai' | 'ollama' | 'smart',
+      openaiKey: config.openaiKey
+    });
+  };
 
   return (
     <div className="h-full flex flex-col bg-white rounded-3xl shadow-2xl">
@@ -325,7 +331,7 @@ const Chat = ({ initialMessages = [], onMessagesChange, onNewConversation }: Cha
         </div>
         
         <div className="mt-4">
-          <AIConfig config={aiConfig} onConfigChange={setAiConfig} />
+          <AIConfig config={aiConfig} onConfigChange={handleConfigChange} />
         </div>
       </div>
     </div>

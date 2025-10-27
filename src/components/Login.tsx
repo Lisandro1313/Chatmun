@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { Mail } from 'lucide-react'
 
 interface LoginProps {
-  onLogin: (user: { name: string; email: string }) => void
+  onLogin: (user: string) => void
 }
 
 const Login = ({ onLogin }: LoginProps) => {
@@ -15,11 +15,8 @@ const Login = ({ onLogin }: LoginProps) => {
     setIsLoading(true)
     // Simulamos login con Google (en producción usarías Google OAuth)
     setTimeout(() => {
-      const user = {
-        name: 'Empleado Municipal',
-        email: 'empleado@laplata.gov.ar'
-      }
-      localStorage.setItem('chatmun_user', JSON.stringify(user))
+      const user = 'empleado@laplata.gov.ar'
+      localStorage.setItem('user', user)
       onLogin(user)
       setIsLoading(false)
     }, 1500)
@@ -28,12 +25,8 @@ const Login = ({ onLogin }: LoginProps) => {
   const handleEmailLogin = () => {
     const email = prompt('Ingresa tu email municipal:')
     if (email && email.includes('@laplata.gov.ar')) {
-      const user = {
-        name: email.split('@')[0],
-        email: email
-      }
-      localStorage.setItem('chatmun_user', JSON.stringify(user))
-      onLogin(user)
+      localStorage.setItem('user', email)
+      onLogin(email)
     } else {
       alert('Debes usar un email oficial (@laplata.gov.ar)')
     }

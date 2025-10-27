@@ -1,0 +1,23 @@
+{
+  "name": "chatmun-ai",
+  "version": 2,
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "devCommand": "npm run dev",
+  "env": {
+    "NEXT_PUBLIC_APP_NAME": "ChatMun AI",
+    "NEXT_PUBLIC_APP_DESCRIPTION": "Asistente IA Municipal para empleados de La Plata"
+  },
+  "build": {
+    "env": {
+      "NEXT_TELEMETRY_DISABLED": "1"
+    }
+  },
+  "functions": {
+    "app/**": {
+      "maxDuration": 30
+    }
+  }
+}

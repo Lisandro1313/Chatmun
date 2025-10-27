@@ -4,12 +4,13 @@ import { useState } from 'react';
 import { Settings, Brain, Zap, Cpu } from 'lucide-react';
 
 interface AIConfigProps {
-  onConfigChange: (config: { aiType: string; apiKey: string }) => void;
+  config: { type: string; openaiKey?: string };
+  onConfigChange: (config: { type: string; openaiKey?: string }) => void;
 }
 
-const AIConfig = ({ onConfigChange }: AIConfigProps) => {
-  const [selectedAI, setSelectedAI] = useState('smart');
-  const [apiKey, setApiKey] = useState('');
+const AIConfig = ({ config, onConfigChange }: AIConfigProps) => {
+  const [selectedAI, setSelectedAI] = useState(config.type || 'smart');
+  const [apiKey, setApiKey] = useState(config.openaiKey || '');
   const [showConfig, setShowConfig] = useState(false);
 
   const aiOptions = [
@@ -41,8 +42,8 @@ const AIConfig = ({ onConfigChange }: AIConfigProps) => {
 
   const handleConfigSave = () => {
     onConfigChange({
-      aiType: selectedAI,
-      apiKey: apiKey
+      type: selectedAI,
+      openaiKey: apiKey
     });
     setShowConfig(false);
   };
