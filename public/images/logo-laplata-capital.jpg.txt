@@ -1,0 +1,4 @@
+# Placeholder para logo de La Plata Capital
+# Reemplaza este archivo con la imagen 3 (logo de La Plata Capital)
+# Nombre del archivo: logo-laplata-capital.jpg
+# Recomendado: 80x80px o similar

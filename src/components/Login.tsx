@@ -39,7 +39,7 @@ const Login = ({ onLogin }: LoginProps) => {
         <div className="text-center mb-8">
           <div className="relative w-20 h-20 mx-auto mb-4">
             <Image 
-              src="/images/logo-laplata.jpg" 
+              src="/images/logo-laplata-capital.jpg" 
               alt="La Plata Capital" 
               width={80}
               height={80}

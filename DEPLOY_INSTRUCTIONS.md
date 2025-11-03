@@ -38,6 +38,7 @@ git push -u origin main
 ## Paso 3: Desplegar en Vercel (GRATIS y perfecto para Next.js)
 
 ### Opción A: Desde GitHub (Recomendado)
+
 1. Ve a [vercel.com](https://vercel.com)
 2. Haz clic en **"Sign Up"** o **"Log In"**
 3. Conecta con tu cuenta de GitHub
@@ -48,6 +49,7 @@ git push -u origin main
 8. ¡Listo! Tu app estará en línea en unos minutos
 
 ### Opción B: Desde la terminal (si instalas Vercel CLI)
+
 ```bash
 npm i -g vercel
 vercel
@@ -56,27 +58,32 @@ vercel
 ## Paso 4: Configuración para producción
 
 ### Variables de entorno en Vercel:
+
 1. En tu dashboard de Vercel, ve a tu proyecto
 2. Settings > Environment Variables
 3. Agrega (opcional):
    - `NEXT_PUBLIC_OLLAMA_URL=http://localhost:11434` (para desarrollo local)
 
 ## 🎯 URLs finales:
+
 - **GitHub**: `https://github.com/TU_USUARIO/chatmun-ai`
 - **Vercel**: `https://chatmun-ai.vercel.app` (o similar)
 
 ## 📝 Notas importantes:
+
 - Ollama solo funcionará en desarrollo local
 - En producción, la app usará el sistema inteligente local
 - Para usar OpenAI en producción, agrega la API key en variables de entorno
 - El diseño es completamente responsive y se ve perfecto en todos los dispositivos
 
 ## 🔄 Para futuros cambios:
+
 ```bash
 git add .
 git commit -m "Descripción de los cambios"
 git push
 ```
+
 Vercel se actualizará automáticamente con cada push a GitHub.
 
 ¡Tu ChatMun AI estará disponible 24/7 en internet! 🎉

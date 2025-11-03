@@ -1,0 +1,4 @@
+# Placeholder para foto de perfil del usuario
+# Reemplaza este archivo con la imagen 4 (tu foto de perfil)
+# Nombre del archivo: perfil-usuario.jpg
+# Recomendado: formato cuadrado, 100x100px o similar
