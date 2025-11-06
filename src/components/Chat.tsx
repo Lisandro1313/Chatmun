@@ -69,7 +69,7 @@ const generateOllamaResponse = async (message: string): Promise<string> => {
       signal: controller.signal,
       body: JSON.stringify({
         message: message,
-        model: 'llama3.2'
+        model: 'llama3.2:3b'
       })
     })
     
@@ -91,7 +91,7 @@ const generateOllamaResponse = async (message: string): Promise<string> => {
       throw new Error('Respuesta vacía de Ollama')
     }
     
-    return `🦙 **Ollama (LLaMA 3.2):**\n\n${data.response}`
+    return `🦙 **Ollama (Llama 3.2 3B):**\n\n${data.response}`
   } catch (error) {
     console.error('❌ Error detallado de Ollama:', error)
     
@@ -122,17 +122,40 @@ const isImagePrompt = (message: string): boolean => {
 
 // Función para detectar si el prompt es para generar video
 const isVideoPrompt = (message: string): boolean => {
+  const msg = message.toLowerCase()
+  
+  // Primero verificar si es explícitamente un GIF
+  const gifKeywords = ['gif', 'genera un gif', 'crear gif', 'hacer gif', 'gif de', 'create gif', 'make gif']
+  const isExplicitGif = gifKeywords.some(keyword => msg.includes(keyword))
+  
+  if (isExplicitGif) {
+    console.log('🎭 Es explícitamente un GIF, no video')
+    return false
+  }
+  
+  // Si no es GIF, verificar si es video
   const videoKeywords = [
     'genera un video', 'generame un video', 'crear video', 'hacer video', 'filma', 'graba',
-    'crea un video', 'video de', 'clip de', 'animación de', 'movie of',
-    'generate video', 'create video', 'make video', 'film', 'animate',
-    'video corto', 'video largo', 'haz un video', 'hazme un video'
+    'crea un video', 'video de', 'clip de', 'movie of', 'película de',
+    'generate video', 'create video', 'make video', 'film',
+    'video corto', 'video largo', 'haz un video', 'hazme un video', 'video mp4'
   ]
-  const isVideo = videoKeywords.some(keyword => 
-    message.toLowerCase().includes(keyword.toLowerCase())
-  )
+  const isVideo = videoKeywords.some(keyword => msg.includes(keyword))
   console.log('🎬 Detectando video para:', message, '→', isVideo)
   return isVideo
+}
+
+// Función para detectar si el prompt es para generar GIF animado
+const isGifPrompt = (message: string): boolean => {
+  const msg = message.toLowerCase()
+  
+  const gifKeywords = [
+    'gif', 'genera un gif', 'crear gif', 'hacer gif', 'gif de',
+    'create gif', 'make gif', 'animated gif', 'imagen gif'
+  ]
+  const isGif = gifKeywords.some(keyword => msg.includes(keyword))
+  console.log('🎭 Detectando GIF para:', message, '→', isGif)
+  return isGif
 }
 
 // Función para generar videos gratuitos
@@ -145,7 +168,7 @@ const generateFreeVideo = async (prompt: string): Promise<string> => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ prompt })
+      body: JSON.stringify({ prompt, type: 'video' })
     })
 
     if (!response.ok) {
@@ -161,6 +184,35 @@ const generateFreeVideo = async (prompt: string): Promise<string> => {
   } catch (error) {
     console.error('❌ Error generando video:', error)
     throw new Error('No se pudo generar el video. Inténtalo de nuevo.')
+  }
+}
+
+// Función para generar GIFs animados
+const generateFreeGif = async (prompt: string): Promise<string> => {
+  try {
+    console.log('🎭 Generando GIF animado...')
+    
+    const response = await fetch('/api/generate-video', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt, type: 'gif' })
+    })
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    console.log('✅ GIF generado:', data)
+    console.log('📱 GIF URL:', data.videoUrl)
+    console.log('🏭 Provider:', data.provider)
+    
+    return data.videoUrl
+  } catch (error) {
+    console.error('❌ Error generando GIF:', error)
+    throw new Error('No se pudo generar el GIF. Inténtalo de nuevo.')
   }
 }
 
@@ -225,9 +277,9 @@ const generateSmartResponse = (message: string): string => {
     return "🎨 **Generación de Imágenes GRATUITA**\n\n¡Totalmente gratis como Ollama! Prueba con:\n• \"Genera una imagen de una oficina municipal moderna\"\n• \"Crea una ilustración de empleados trabajando\"\n• \"Dibuja un logo para la municipalidad\"\n\n✨ **Powered by Pollinations AI** - Sin límites, sin costo, sin configuración!"
   }
   
-  // Video generation suggestions
-  if (msg.includes('video') || msg.includes('animación') || msg.includes('clip')) {
-    return "🎬 **Generación de Videos GRATUITA**\n\n¡Ahora disponible! Totalmente gratis como Ollama!\n\nPrueba con:\n• \"Genera un video de una reunión municipal\"\n• \"Crea un video de empleados trabajando\"\n• \"Filma una animación de la ciudad\"\n\n✨ **Múltiples proveedores gratuitos:**\n• Zeroscope (Hugging Face)\n• Pexels Stock Videos\n• GIFs animados\n\n🚀 **Sin límites, sin costo, sin configuración!**"
+  // Video and GIF generation suggestions
+  if (msg.includes('video') || msg.includes('animación') || msg.includes('clip') || msg.includes('gif')) {
+    return "🎬 **Generación de Videos y GIFs GRATUITA**\n\n¡Totalmente gratis como Ollama!\n\n**Para Videos MP4:**\n• \"Genera un video de una reunión municipal\"\n• \"Crea un video de empleados trabajando\"\n• \"Filma un clip de la ciudad\"\n\n**Para GIFs Animados:**\n• \"Genera un gif de celebración\"\n• \"Crea una animación de trabajo en equipo\"\n• \"Gif de una oficina municipal\"\n\n✨ **Proveedores:**\n• Videos: Hugging Face, Pexels, Replicate\n• GIFs: Tenor (súper rápido!)\n\n🚀 **Sin límites, sin costo!**"
   }
   
   // Basic greetings
@@ -261,7 +313,7 @@ const Chat = ({ initialMessages = [], onMessagesChange, onNewConversation }: Cha
       : [{
           id: 1,
           type: 'ai',
-          content: '¡Hola! Soy tu asistente de IA municipal. 🏛️\n\n✨ **Funciones disponibles:**\n• Chat inteligente\n• **Generación de imágenes GRATUITA** 🎨\n• **Generación de videos GRATUITA** 🎬\n• Asistencia municipal\n\n💡 **Prueba:**\n• "Genera una imagen de..." \n• "Genera un video de..."\n\n¿En qué puedo ayudarte hoy?',
+          content: '¡Hola! Soy tu asistente de IA municipal. 🏛️\n\n✨ **Funciones disponibles:**\n• Chat inteligente con Ollama\n• **Generación de imágenes GRATUITA** 🎨\n• **Generación de videos y GIFs GRATUITA** 🎬\n• Asistencia municipal especializada\n\n💡 **Prueba:**\n• "Genera una imagen de..." \n• "Genera un video de..."\n• "Crea un gif de..."\n\n¿En qué puedo ayudarte hoy?',
         }]
   )
   const [inputMessage, setInputMessage] = useState('')
@@ -347,6 +399,51 @@ const Chat = ({ initialMessages = [], onMessagesChange, onNewConversation }: Cha
           }
           return [...newMessages, finalMessage]
         })
+        
+      } else if (isGifPrompt(messageText)) {
+        // Generar GIF animado
+        console.log('🎭 Tomando camino de GIF - Detectado prompt de GIF')
+        
+        // Mensaje de carga para GIF
+        const loadingMessage: Message = {
+          id: Date.now() + 1,
+          type: 'ai',
+          content: '🎭 Generando GIF animado...\n\nBuscando el GIF perfecto en Tenor. Esto es rápido!',
+          isGenerating: true
+        }
+        
+        setMessages(prevMessages => [...prevMessages, loadingMessage])
+
+        try {
+          const gifUrl = await generateFreeGif(messageText)
+          response = `🎭 **GIF animado encontrado:**\n\nPrompt: "${messageText}"\n\n✨ Powered by Tenor`
+          
+          // Reemplazar mensaje de carga con resultado
+          setMessages(prevMessages => {
+            const newMessages = prevMessages.filter(msg => !msg.isGenerating)
+            const finalMessage: Message = {
+              id: Date.now() + 2,
+              type: 'ai',
+              content: response,
+              videoUrl: gifUrl || undefined
+            }
+            return [...newMessages, finalMessage]
+          })
+        } catch (error) {
+          console.error('Error generando GIF:', error)
+          response = `🎭 **Error generando GIF:**\n\n${error instanceof Error ? error.message : 'Error desconocido'}\n\nPor favor intenta de nuevo.`
+          
+          // Reemplazar mensaje de carga con error
+          setMessages(prevMessages => {
+            const newMessages = prevMessages.filter(msg => !msg.isGenerating)
+            const finalMessage: Message = {
+              id: Date.now() + 2,
+              type: 'ai',
+              content: response
+            }
+            return [...newMessages, finalMessage]
+          })
+        }
         
       } else if (isVideoPrompt(messageText)) {
         // Generar video

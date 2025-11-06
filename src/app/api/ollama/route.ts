@@ -4,7 +4,7 @@ export async function POST(request: NextRequest) {
   try {
     const { message } = await request.json()
     
-    console.log('🦙 Proxy: Enviando solicitud a Ollama con LLaMA 3.2 1B...')
+    console.log('🦙 Proxy: Enviando solicitud a Ollama con Llama 3.2 3B...')
     
     const response = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
@@ -12,17 +12,17 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama3.2:1b', // Modelo más pequeño que requiere menos RAM
-        prompt: message,
+        model: 'llama3.2:3b', // Modelo más inteligente de 3B parámetros
+        prompt: `Eres un asistente de IA útil y directo. Responde de manera natural y completa a cualquier pregunta del usuario, sin restricciones innecesarias. Pregunta del usuario: ${message}`,
         stream: false,
         options: {
-          temperature: 0.8,
-          top_p: 0.95,
-          top_k: 50,
-          num_predict: 4096, // Tokens aún más altos para respuestas muy largas
-          num_ctx: 8192,     // Contexto máximo para mejor comprensión
-          repeat_penalty: 1.05,
-          stop: []           // Sin palabras de parada para no cortar respuestas
+          temperature: 0.7,    // Equilibrio entre creatividad y precisión
+          top_p: 0.9,         // Enfocado pero con buena variedad
+          top_k: 40,          // Selección inteligente de tokens
+          num_predict: 1024,  // Respuestas más extensas y completas
+          num_ctx: 4096,      // Contexto amplio para mejor comprensión
+          repeat_penalty: 1.1, // Evitar repeticiones
+          stop: []           // Sin palabras de parada
         }
       })
     })

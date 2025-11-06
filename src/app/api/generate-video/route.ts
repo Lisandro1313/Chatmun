@@ -84,23 +84,6 @@ async function generateWithHuggingFaceVideo(prompt: string) {
                   isRealVideo: true
                 }
               }
-            } else {
-              // Puede ser una imagen o GIF
-              const imageBlob = await response.blob()
-              if (imageBlob && imageBlob.size > 0) {
-                const arrayBuffer = await imageBlob.arrayBuffer()
-                const base64 = Buffer.from(arrayBuffer).toString('base64')
-                const imageUrl = `data:${contentType || 'image/png'};base64,${base64}`
-                console.log(`✅ Contenido visual generado con ${model}`)
-                
-                return {
-                  success: true,
-                  videoUrl: imageUrl,
-                  provider: `Hugging Face (${model})`,
-                  message: 'Contenido visual generado',
-                  isImage: true
-                }
-              }
             }
           } else {
             const errorText = await response.text()
@@ -115,82 +98,55 @@ async function generateWithHuggingFaceVideo(prompt: string) {
       console.log('❌ API directa falló:', directError)
     }
 
-    // Fallback: Intentar con generación de imagen de alta calidad
-    console.log('🎨 Fallback: Generando imagen cinematográfica...')
-    try {
-      const imageResult = await hf.textToImage({
-        model: 'black-forest-labs/FLUX.1-dev',
-        inputs: prompt + ' cinematic, high quality, movie still, 4K',
-        parameters: {
-          width: 512,
-          height: 512
-        }
-      })
-
-      if (imageResult && typeof imageResult === 'object' && 'size' in imageResult) {
-        // Convertir blob a base64 para que funcione en el frontend
-        const blob = imageResult as Blob
-        const arrayBuffer = await blob.arrayBuffer()
-        const base64 = Buffer.from(arrayBuffer).toString('base64')
-        const imageUrl = `data:${blob.type || 'image/png'};base64,${base64}`
-        console.log('✅ Imagen cinematográfica de alta calidad generada')
-        
-        return {
-          success: true,
-          videoUrl: imageUrl,
-          provider: 'Hugging Face (Imagen 4K Cinematográfica)',
-          message: 'Imagen de alta calidad relacionada con video',
-          isImage: true
-        }
-      }
-    } catch (imageError) {
-      console.log('❌ Generación de imagen también falló:', imageError)
-    }
-
+    return null
   } catch (error) {
-    console.log('❌ Hugging Face Video error general:', error)
+    console.log('❌ Hugging Face no disponible:', error)
+    return null
   }
-  
-  return null
 }
 
-// Función para generar video con Stable Video Diffusion (Hugging Face)
+// Función para generar video con Stable Video Diffusion
 async function generateWithStableVideo(prompt: string) {
   try {
     console.log('🎬 Intentando Stable Video Diffusion...')
     
-    const response = await fetch('https://api-inference.huggingface.co/models/stabilityai/stable-video-diffusion-img2vid-xt-1-1', {
+    const hfToken = process.env.HUGGINGFACE_TOKEN || process.env.HF_TOKEN
+    
+    if (!hfToken) {
+      console.log('⚠️ Token de Hugging Face no configurado para Stable Video')
+      return null
+    }
+
+    const response = await fetch('https://api-inference.huggingface.co/models/stabilityai/stable-video-diffusion-img2vid-xt', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY || 'hf_demo'}`,
+        'Authorization': `Bearer ${hfToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         inputs: prompt,
         parameters: {
-          num_frames: 25,
-          num_inference_steps: 25
+          num_frames: 16,
+          fps: 6
         }
       })
     })
 
     if (response.ok) {
       const videoBlob = await response.blob()
-      
-      // Convertir a base64 para mostrar en el frontend
       const arrayBuffer = await videoBlob.arrayBuffer()
-      const base64Video = Buffer.from(arrayBuffer).toString('base64')
+      const base64 = Buffer.from(arrayBuffer).toString('base64')
+      const videoUrl = `data:video/mp4;base64,${base64}`
       
       return {
         success: true,
-        videoUrl: `data:video/mp4;base64,${base64Video}`,
-        provider: 'Stable Video Diffusion (Hugging Face - Gratuito)'
+        videoUrl: videoUrl,
+        provider: 'Stable Video Diffusion (IA)',
+        isRealVideo: true
       }
-    } else {
-      console.log('Stable Video no disponible, intentando siguiente...')
     }
   } catch (error) {
-    console.log('Stable Video error:', error)
+    console.log('❌ Stable Video error:', error)
   }
   
   return null
@@ -236,13 +192,14 @@ async function generateWithReplicate(prompt: string) {
   return null
 }
 
-// Función para generar videos con APIs gratuitas
+// Función para generar videos con APIs gratuitas (Pixabay)
 async function generateFreeVideo(prompt: string) {
   try {
     console.log('🎬 Intentando APIs de video gratuitas...')
     
-    // Opción 1: Usar Pixabay (tiene videos gratuitos)
+    // Opción 1: Usar Pixabay (tiene videos gratuitos MP4)
     try {
+      console.log('🎬 Probando Pixabay para videos MP4...')
       const pixabayResponse = await fetch(
         `https://pixabay.com/api/videos/?key=demo&q=${encodeURIComponent(prompt)}&per_page=3&min_width=640`,
         { 
@@ -253,79 +210,30 @@ async function generateFreeVideo(prompt: string) {
         }
       )
       
+      console.log('🎬 Pixabay response status:', pixabayResponse.status)
+      
       if (pixabayResponse.ok) {
         const data = await pixabayResponse.json()
+        console.log('🎬 Pixabay videos encontrados:', data.hits?.length || 0)
+        
         if (data.hits && data.hits.length > 0) {
           const video = data.hits[0]
-          console.log('✅ Video encontrado en Pixabay')
+          console.log('✅ Video MP4 encontrado en Pixabay:', video.tags)
           return {
             success: true,
             videoUrl: video.videos.medium.url,
-            provider: 'Pixabay (Video Gratuito)',
-            message: 'Video real de biblioteca gratuita'
+            provider: 'Pixabay (Video MP4 Gratuito)',
+            message: 'Video MP4 real de biblioteca gratuita',
+            isRealVideo: true
           }
+        } else {
+          console.log('⚠️ Pixabay no encontró videos para:', prompt)
         }
+      } else {
+        console.log('⚠️ Pixabay response no OK:', pixabayResponse.status)
       }
     } catch (error) {
       console.log('Pixabay no disponible:', error)
-    }
-    
-    // Opción 2: Usar servicios de GIF animado
-    try {
-      console.log('🎬 Probando GIPHY API...')
-      // Usar Tenor en lugar de GIPHY (más abierto)
-      const tenorResponse = await fetch(
-        `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(prompt)}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&limit=1&media_filter=gif&contentfilter=medium`
-      )
-      
-      console.log('🎬 Tenor response status:', tenorResponse.status)
-      
-      if (tenorResponse.ok) {
-        const data = await tenorResponse.json()
-        console.log('🎬 Tenor data disponible:', data.results?.length || 0)
-        
-        if (data.results && data.results.length > 0) {
-          const gif = data.results[0]
-          const gifUrl = gif.media_formats.gif.url
-          console.log('✅ GIF encontrado en Tenor:', gif.content_description)
-          console.log('🔗 GIF URL:', gifUrl)
-          return {
-            success: true,
-            videoUrl: gifUrl,
-            provider: 'Tenor (GIF Animado Gratuito)',
-            message: 'GIF animado relacionado con el prompt'
-          }
-        } else {
-          console.log('⚠️ Tenor no encontró resultados para:', prompt)
-        }
-      } else {
-        console.log('⚠️ Tenor response no OK:', tenorResponse.status)
-      }
-    } catch (error) {
-      console.log('❌ Tenor no disponible:', error)
-      
-      // Fallback: intentar con una API simple de GIF
-      try {
-        console.log('🎬 Probando con API alternativa de GIFs...')
-        // Usar una API simple que no requiere clave
-        const simpleGifUrl = `https://api.giphy.com/v1/gifs/translate?api_key=dc6zaTOxFJmzC&s=${encodeURIComponent(prompt)}`
-        const simpleResponse = await fetch(simpleGifUrl)
-        
-        if (simpleResponse.ok) {
-          const data = await simpleResponse.json()
-          if (data.data && data.data.images) {
-            console.log('✅ GIF simple encontrado')
-            return {
-              success: true,
-              videoUrl: data.data.images.fixed_height.url,
-              provider: 'GIPHY Simple (GIF Gratuito)',
-              message: 'GIF relacionado encontrado'
-            }
-          }
-        }
-      } catch (fallbackError) {
-        console.log('❌ API alternativa tampoco disponible:', fallbackError)
-      }
     }
     
     console.log('APIs de video gratuitas no disponibles')
@@ -337,55 +245,54 @@ async function generateFreeVideo(prompt: string) {
   }
 }
 
-// Función fallback: generar imagen temática relacionada con video
+// Función para generar GIFs animados con Tenor (SOLO para GIFs explícitos)
 async function generateAnimatedGIF(prompt: string) {
   try {
-    console.log('� Generando imagen relacionada con video...')
+    console.log('🎭 Generando GIF animado con Tenor...')
     
-    // Usar Pollinations para generar una imagen relacionada con el prompt de video
-    const imagePrompt = `${prompt} cinematic, high quality, vibrant colors`
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=500&height=300&nologo=true&nofeed=true&seed=${Math.floor(Math.random() * 10000)}`
+    // Usar Tenor API para GIFs animados
+    const tenorResponse = await fetch(
+      `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(prompt)}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&limit=1&media_filter=gif&contentfilter=off`
+    )
     
-    console.log('✅ Imagen relacionada generada')
-    console.log('🔗 URL:', imageUrl)
+    console.log('🎭 Tenor response status:', tenorResponse.status)
     
-    return {
-      success: true,
-      videoUrl: imageUrl,
-      provider: 'Pollinations (Imagen AI Gratuita)',
-      message: 'Imagen AI relacionada con el video solicitado',
-      isImage: true
+    if (tenorResponse.ok) {
+      const data = await tenorResponse.json()
+      console.log('🎭 Tenor data disponible:', data.results?.length || 0)
+      
+      if (data.results && data.results.length > 0) {
+        const gif = data.results[0]
+        const gifUrl = gif.media_formats.gif.url
+        console.log('✅ GIF encontrado en Tenor:', gif.content_description)
+        console.log('🔗 GIF URL:', gifUrl)
+        return {
+          success: true,
+          videoUrl: gifUrl,
+          provider: 'Tenor (GIF Animado Gratuito)',
+          message: 'GIF animado relacionado con el prompt',
+          isGif: true
+        }
+      } else {
+        console.log('⚠️ Tenor no encontró resultados para:', prompt)
+      }
+    } else {
+      console.log('⚠️ Tenor response no OK:', tenorResponse.status)
     }
+    
+    return null
   } catch (error) {
-    console.error('Error generando imagen relacionada:', error)
-    
-    // Fallback de emergencia con contenido temático
-    const encodedPrompt = encodeURIComponent(prompt)
-    let fallbackUrl = `https://robohash.org/${encodedPrompt}.png?set=set4&size=400x300`
-    
-    // Mejorar fallback según el contenido
-    if (prompt.toLowerCase().includes('perro') || prompt.toLowerCase().includes('dog')) {
-      fallbackUrl = `https://robohash.org/${encodedPrompt}.png?set=set4&size=400x300`
-    } else if (prompt.toLowerCase().includes('gato') || prompt.toLowerCase().includes('cat')) {
-      fallbackUrl = `https://robohash.org/${encodedPrompt}.png?set=set4&size=400x300`
-    } else if (prompt.toLowerCase().includes('paisaje') || prompt.toLowerCase().includes('naturaleza')) {
-      fallbackUrl = `https://picsum.photos/400/300?random=${Math.floor(Math.random() * 1000)}`
-    }
-    
-    return {
-      success: true,
-      videoUrl: fallbackUrl,
-      provider: 'Imagen de Respaldo (Gratuito)',
-      message: 'Imagen temática relacionada',
-      isImage: true
-    }
+    console.error('Error generando GIF con Tenor:', error)
+    return null
   }
 }
 
-// Función para generar video con Pexels (videos stock)
+// Función para generar video con Pexels (videos stock MP4)
 async function generateWithPexels(prompt: string) {
   try {
+    console.log('🎬 Probando Pexels para videos MP4...')
     const pexelsKey = process.env.PEXELS_API_KEY || 'demo_key'
+    
     const response = await fetch(
       `https://api.pexels.com/videos/search?query=${encodeURIComponent(prompt)}&per_page=1`,
       {
@@ -395,22 +302,32 @@ async function generateWithPexels(prompt: string) {
       }
     )
 
+    console.log('🎬 Pexels response status:', response.status)
+
     if (response.ok) {
       const data = await response.json()
+      console.log('🎬 Pexels videos encontrados:', data.videos?.length || 0)
+      
       if (data.videos && data.videos.length > 0) {
         const video = data.videos[0]
         const videoFile = video.video_files.find((file: { quality: string }) => file.quality === 'sd' || file.quality === 'hd')
         
+        console.log('✅ Video MP4 encontrado en Pexels')
         return {
           success: true,
           videoUrl: videoFile?.link || video.video_files[0].link,
-          provider: 'Pexels Stock Video (Gratuito)',
-          thumbnail: video.image
+          provider: 'Pexels Stock Video MP4 (Gratuito)',
+          thumbnail: video.image,
+          isRealVideo: true
         }
+      } else {
+        console.log('⚠️ Pexels no encontró videos para:', prompt)
       }
+    } else {
+      console.log('⚠️ Pexels response no OK:', response.status)
     }
-  } catch {
-    console.log('Pexels no disponible')
+  } catch (error) {
+    console.log('❌ Pexels no disponible:', error)
   }
   
   return null
@@ -418,7 +335,7 @@ async function generateWithPexels(prompt: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt } = await request.json()
+    const { prompt, type = 'video' } = await request.json()
 
     if (!prompt) {
       return NextResponse.json(
@@ -427,32 +344,48 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('🎬 Generando video con prompt:', prompt)
+    console.log(`🎬 Generando ${type} con prompt:`, prompt)
 
-    // Intentar diferentes proveedores en orden
+    // Si es un GIF, usar principalmente Tenor
+    if (type === 'gif') {
+      console.log('🎭 Modo GIF - Priorizando Tenor')
+      const gifResult = await generateAnimatedGIF(prompt)
+      if (gifResult?.success) {
+        console.log(`✅ GIF generado con: ${gifResult.provider}`)
+        return NextResponse.json(gifResult)
+      }
+    } else {
+      console.log('🎬 Modo VIDEO - Priorizando videos MP4 reales')
+    }
+
+    // Para videos reales, usar proveedores de video MP4 primero (SIN Tenor)
     const providers = [
-      () => generateWithHuggingFaceVideo(prompt),
-      () => generateWithStableVideo(prompt),
-      () => generateWithReplicate(prompt),
-      () => generateFreeVideo(prompt),
-      () => generateWithPexels(prompt),
-      () => generateAnimatedGIF(prompt)
+      () => generateWithPexels(prompt),          // PRIORIDAD 1: Videos MP4 reales
+      () => generateFreeVideo(prompt),           // PRIORIDAD 2: Videos de stock Pixabay
+      () => generateWithHuggingFaceVideo(prompt), // PRIORIDAD 3: IA de video
+      () => generateWithStableVideo(prompt),     // PRIORIDAD 4: Stable Video Diffusion
+      () => generateWithReplicate(prompt)        // PRIORIDAD 5: Replicate
+      // NOTA: Tenor eliminado de la lista de videos - solo se usa para GIFs explícitos
     ]
 
+    console.log('🎬 Probando proveedores en orden de prioridad para VIDEOS MP4...')
+    
     for (const provider of providers) {
       const result = await provider()
       if (result?.success) {
-        console.log(`✅ Video generado con: ${result.provider}`)
+        console.log(`✅ Video MP4 generado con: ${result.provider}`)
         return NextResponse.json(result)
       }
     }
 
-    // Si todo falla, generar un video placeholder
+    // Si todo falla, generar un video placeholder MP4
+    console.log('⚠️ Todos los proveedores de video MP4 fallaron, usando placeholder')
     return NextResponse.json({
       success: true,
       videoUrl: 'https://sample-videos.com/zip/10/mp4/SampleVideo_720x480_1mb.mp4',
-      provider: 'Video de Ejemplo (Fallback)',
-      message: 'Generando video placeholder mientras configuramos el servicio'
+      provider: 'Video de Ejemplo MP4 (Fallback)',
+      message: 'Video placeholder mientras configuramos el servicio',
+      isRealVideo: true
     })
 
   } catch (error) {
